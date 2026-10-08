@@ -22,7 +22,7 @@ jobs:
     steps:
 
       # --------------------------------------------------
-      # 1. Checkout
+      # 1. Checkout repository
       # --------------------------------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -30,7 +30,7 @@ jobs:
           fetch-depth: 0
 
       # --------------------------------------------------
-      # 2. Node
+      # 2. Setup Node.js
       # --------------------------------------------------
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -38,11 +38,11 @@ jobs:
           node-version: 20
 
       # --------------------------------------------------
-      # 3. HARD CHECK - पुराने main.jsx को रोकें
+      # 3. Verify replacement frontend exists
       # --------------------------------------------------
-      - name: Check frontend source
+      - name: Check replacement frontend
         run: |
-          echo "Checking src/main-github-pages-fixed.jsx..."
+          echo "Checking replacement frontend..."
 
           if [ ! -f "src/main-github-pages-fixed.jsx" ]; then
             echo "ERROR: src/main-github-pages-fixed.jsx not found."
@@ -51,18 +51,17 @@ jobs:
 
           LINES=$(wc -l < src/main-github-pages-fixed.jsx)
 
-          echo "src/main-github-pages-fixed.jsx lines: $LINES"
+          echo "Replacement frontend lines: $LINES"
 
           if [ "$LINES" -gt 500 ]; then
-            echo "ERROR: OLD/LEGACY src/main.jsx DETECTED."
-            echo "This workflow will NOT build the legacy frontend."
+            echo "ERROR: Replacement frontend is unexpectedly large."
             exit 1
           fi
 
-          echo "Frontend source accepted."
+          echo "Replacement frontend accepted."
 
       # --------------------------------------------------
-      # 4. package-lock generate
+      # 4. Generate package-lock.json
       # --------------------------------------------------
       - name: Generate package-lock.json
         run: |
@@ -72,7 +71,7 @@ jobs:
             --no-fund
 
       # --------------------------------------------------
-      # 5. Commit package-lock if required
+      # 5. Commit package-lock.json if changed
       # --------------------------------------------------
       - name: Commit package-lock.json
         run: |
@@ -88,55 +87,91 @@ jobs:
           fi
 
       # --------------------------------------------------
-      # 6. Clean install
+      # 6. Install dependencies
       # --------------------------------------------------
       - name: Install dependencies
         run: npm ci
 
       # --------------------------------------------------
-      # 7. Final source verification
+      # 7. FORCE replacement of legacy main.jsx
       # --------------------------------------------------
-      - name: Verify source before build
+      - name: Replace legacy main.jsx
         run: |
+          echo "Removing legacy src/main.jsx..."
+
           rm -f src/main.jsx
+
+          echo "Installing GitHub Pages frontend..."
+
           cp src/main-github-pages-fixed.jsx src/main.jsx
 
-          if grep -n "return" src/main.jsx | tail -20; then
-            echo "Return statements found."
+          echo "Active frontend:"
+          wc -l src/main.jsx
+
+      # --------------------------------------------------
+      # 8. HARD SECURITY CHECK
+      # --------------------------------------------------
+      - name: Verify active frontend
+        run: |
+          echo "Verifying active src/main.jsx..."
+
+          if [ ! -f "src/main.jsx" ]; then
+            echo "ERROR: src/main.jsx does not exist."
+            exit 1
           fi
 
           LINES=$(wc -l < src/main.jsx)
 
+          echo "Active src/main.jsx lines: $LINES"
+
           if [ "$LINES" -gt 500 ]; then
-            echo "ERROR: Legacy main.jsx detected before build."
+            echo "ERROR: Legacy/incorrect main.jsx detected."
+            echo "BUILD STOPPED."
             exit 1
           fi
 
+          echo "Active frontend verified."
+
       # --------------------------------------------------
-      # 8. Validate data
+      # 9. Show first lines for debugging
+      # --------------------------------------------------
+      - name: Show active frontend
+        run: |
+          echo "----- ACTIVE src/main.jsx -----"
+          head -n 10 src/main.jsx
+          echo "----- END -----"
+
+      # --------------------------------------------------
+      # 10. Validate project data
       # --------------------------------------------------
       - name: Validate data
         run: npm run validate:data
 
       # --------------------------------------------------
-      # 9. GitHub Pages configuration
+      # 11. Configure GitHub Pages
       # --------------------------------------------------
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
       # --------------------------------------------------
-      # 10. Build
+      # 12. Build React/Vite
       # --------------------------------------------------
       - name: Build React/Vite
-        run: npm run build
+        run: |
+          echo "Building ONLY the verified src/main.jsx..."
+          npm run build
 
       # --------------------------------------------------
-      # 11. Upload
+      # 13. Upload Pages artifact
       # --------------------------------------------------
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./dist
+
+  # ======================================================
+  # DEPLOY
+  # ======================================================
 
   deploy:
     runs-on: ubuntu-latest
