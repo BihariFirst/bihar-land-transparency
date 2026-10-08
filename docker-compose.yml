@@ -1,0 +1,13 @@
+services:
+  app:
+    build: .
+    ports:
+      - "4000:4000"
+    environment:
+      PORT: 4000
+      ADMIN_TOKEN: ${ADMIN_TOKEN:?set ADMIN_TOKEN in .env}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:4000}
+    volumes:
+      - land_data:/app/server/data
+volumes:
+  land_data:
