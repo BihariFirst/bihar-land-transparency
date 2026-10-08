@@ -42,16 +42,16 @@ jobs:
       # --------------------------------------------------
       - name: Check frontend source
         run: |
-          echo "Checking src/main.jsx..."
+          echo "Checking src/main-github-pages-fixed.jsx..."
 
-          if [ ! -f "src/main.jsx" ]; then
-            echo "ERROR: src/main.jsx not found."
+          if [ ! -f "src/main-github-pages-fixed.jsx" ]; then
+            echo "ERROR: src/main-github-pages-fixed.jsx not found."
             exit 1
           fi
 
-          LINES=$(wc -l < src/main.jsx)
+          LINES=$(wc -l < src/main-github-pages-fixed.jsx)
 
-          echo "src/main.jsx lines: $LINES"
+          echo "src/main-github-pages-fixed.jsx lines: $LINES"
 
           if [ "$LINES" -gt 500 ]; then
             echo "ERROR: OLD/LEGACY src/main.jsx DETECTED."
