@@ -20,26 +20,64 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+
+      # --------------------------------------------------
+      # 1. Checkout
+      # --------------------------------------------------
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # --------------------------------------------------
+      # 2. Node
+      # --------------------------------------------------
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      # Create/update lock file directly in GitHub runner
-      - name: Create or update package-lock.json
+      # --------------------------------------------------
+      # 3. HARD CHECK - पुराने main.jsx को रोकें
+      # --------------------------------------------------
+      - name: Check frontend source
         run: |
-          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          echo "Checking src/main.jsx..."
 
-      # Commit lock file if it changed
-      - name: Commit lock file
+          if [ ! -f "src/main.jsx" ]; then
+            echo "ERROR: src/main.jsx not found."
+            exit 1
+          fi
+
+          LINES=$(wc -l < src/main.jsx)
+
+          echo "src/main.jsx lines: $LINES"
+
+          if [ "$LINES" -gt 500 ]; then
+            echo "ERROR: OLD/LEGACY src/main.jsx DETECTED."
+            echo "This workflow will NOT build the legacy frontend."
+            exit 1
+          fi
+
+          echo "Frontend source accepted."
+
+      # --------------------------------------------------
+      # 4. package-lock generate
+      # --------------------------------------------------
+      - name: Generate package-lock.json
+        run: |
+          npm install --package-lock-only \
+            --ignore-scripts \
+            --no-audit \
+            --no-fund
+
+      # --------------------------------------------------
+      # 5. Commit package-lock if required
+      # --------------------------------------------------
+      - name: Commit package-lock.json
         run: |
           if git diff --quiet -- package-lock.json; then
-            echo "No package-lock.json changes."
+            echo "package-lock.json is already current."
           else
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -49,19 +87,52 @@ jobs:
             git push origin HEAD:main
           fi
 
-      # Install dependencies
+      # --------------------------------------------------
+      # 6. Clean install
+      # --------------------------------------------------
       - name: Install dependencies
         run: npm ci
 
+      # --------------------------------------------------
+      # 7. Final source verification
+      # --------------------------------------------------
+      - name: Verify source before build
+        run: |
+          echo "Final src/main.jsx:"
+          wc -l src/main.jsx
+
+          if grep -n "return" src/main.jsx | tail -20; then
+            echo "Return statements found."
+          fi
+
+          LINES=$(wc -l < src/main.jsx)
+
+          if [ "$LINES" -gt 500 ]; then
+            echo "ERROR: Legacy main.jsx detected before build."
+            exit 1
+          fi
+
+      # --------------------------------------------------
+      # 8. Validate data
+      # --------------------------------------------------
       - name: Validate data
         run: npm run validate:data
 
-      - name: Configure Pages
+      # --------------------------------------------------
+      # 9. GitHub Pages configuration
+      # --------------------------------------------------
+      - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
-      - name: Build
+      # --------------------------------------------------
+      # 10. Build
+      # --------------------------------------------------
+      - name: Build React/Vite
         run: npm run build
 
+      # --------------------------------------------------
+      # 11. Upload
+      # --------------------------------------------------
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
@@ -76,6 +147,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
