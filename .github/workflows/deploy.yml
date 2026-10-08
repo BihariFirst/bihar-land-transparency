@@ -98,8 +98,8 @@ jobs:
       # --------------------------------------------------
       - name: Verify source before build
         run: |
-          echo "Final src/main.jsx:"
-          wc -l src/main.jsx
+          rm -f src/main.jsx
+          cp src/main-github-pages-fixed.jsx src/main.jsx
 
           if grep -n "return" src/main.jsx | tail -20; then
             echo "Return statements found."
