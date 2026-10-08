@@ -38,27 +38,28 @@ jobs:
           node-version: 20
 
       # --------------------------------------------------
-      # 3. Verify replacement frontend exists
+      # 3. Verify the ONLY frontend entry file
       # --------------------------------------------------
-      - name: Check replacement frontend
+      - name: Verify src/main.jsx
         run: |
-          echo "Checking replacement frontend..."
+          echo "Checking src/main.jsx..."
 
-          if [ ! -f "src/main-github-pages-fixed.jsx" ]; then
-            echo "ERROR: src/main-github-pages-fixed.jsx not found."
+          if [ ! -f "src/main.jsx" ]; then
+            echo "ERROR: src/main.jsx not found."
             exit 1
           fi
 
-          LINES=$(wc -l < src/main-github-pages-fixed.jsx)
+          LINES=$(wc -l < src/main.jsx)
 
-          echo "Replacement frontend lines: $LINES"
+          echo "src/main.jsx lines: $LINES"
 
           if [ "$LINES" -gt 500 ]; then
-            echo "ERROR: Replacement frontend is unexpectedly large."
+            echo "ERROR: Legacy/incorrect main.jsx detected."
+            echo "Build stopped."
             exit 1
           fi
 
-          echo "Replacement frontend accepted."
+          echo "Frontend source accepted."
 
       # --------------------------------------------------
       # 4. Generate package-lock.json
@@ -93,170 +94,57 @@ jobs:
         run: npm ci
 
       # --------------------------------------------------
-      # 7. FORCE replacement of legacy main.jsx
+      # 7. Final source verification
       # --------------------------------------------------
-      - name: Replace legacy main.jsx
+      - name: Final source verification
         run: |
-          echo "Removing legacy src/main.jsx..."
+          echo "========================================"
+          echo "FINAL FRONTEND CHECK"
+          echo "========================================"
 
-          rm -f src/main.jsx
+          echo "File:"
+          ls -lh src/main.jsx
 
-          echo "Installing GitHub Pages frontend..."
-
-          cp src/main-github-pages-fixed.jsx src/main.jsx
-
-          echo "Active frontend:"
+          echo ""
+          echo "Line count:"
           wc -l src/main.jsx
 
-      # --------------------------------------------------
-      # 8. HARD SECURITY CHECK
-      # --------------------------------------------------
-      - name: Verify active frontend
-        run: |
-          echo "Verifying active src/main.jsx..."
-
-          if [ ! -f "src/main.jsx" ]; then
-            echo "ERROR: src/main.jsx does not exist."
-            exit 1
-          fi
+          echo ""
+          echo "SHA256:"
+          sha256sum src/main.jsx
 
           LINES=$(wc -l < src/main.jsx)
 
-          echo "Active src/main.jsx lines: $LINES"
-
           if [ "$LINES" -gt 500 ]; then
-            echo "ERROR: Legacy/incorrect main.jsx detected."
-            echo "BUILD STOPPED."
+            echo "ERROR: Legacy main.jsx detected."
             exit 1
           fi
 
-          echo "Active frontend verified."
+          echo ""
+          echo "Frontend verification PASSED."
 
       # --------------------------------------------------
-      # 9. Show first lines for debugging
-      # --------------------------------------------------
-      - name: Show active frontend
-        run: |
-          echo "----- ACTIVE src/main.jsx -----"
-          head -n 10 src/main.jsx
-          echo "----- END -----"
-
-      # --------------------------------------------------
-      # 10. Validate project data
+      # 8. Validate project data
       # --------------------------------------------------
       - name: Validate data
         run: npm run validate:data
 
       # --------------------------------------------------
-      # 11. Configure GitHub Pages
+      # 9. Configure GitHub Pages
       # --------------------------------------------------
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
-            # --------------------------------------------------
-      # FORCE AND VERIFY FRONTEND
       # --------------------------------------------------
-      - name: FORCE correct main.jsx
-        shell: bash
-        run: |
-          set -e
-
-          echo "========================================"
-          echo "FORCING CORRECT FRONTEND"
-          echo "========================================"
-
-          echo "Git commit:"
-          git rev-parse HEAD
-
-          echo ""
-          echo "Replacement file:"
-          ls -lh src/main-github-pages-fixed.jsx
-          wc -l src/main-github-pages-fixed.jsx
-          sha256sum src/main-github-pages-fixed.jsx
-
-          echo ""
-          echo "Removing old main.jsx..."
-          rm -f src/main.jsx
-
-          echo "Copying fixed frontend..."
-          cp -f src/main-github-pages-fixed.jsx src/main.jsx
-
-          echo ""
-          echo "ACTIVE main.jsx:"
-          ls -lh src/main.jsx
-          wc -l src/main.jsx
-          sha256sum src/main.jsx
-
-          echo ""
-          echo "Comparing files..."
-
-          cmp -s src/main-github-pages-fixed.jsx src/main.jsx
-
-          if [ $? -ne 0 ]; then
-            echo "ERROR: main.jsx does NOT match fixed frontend."
-            exit 1
-          fi
-
-          echo ""
-          echo "SUCCESS: main.jsx EXACTLY matches fixed frontend."
-
-          LINES=$(wc -l < src/main.jsx)
-
-          if [ "$LINES" -gt 500 ]; then
-            echo "ERROR: main.jsx has $LINES lines."
-            echo "Legacy frontend detected."
-            exit 1
-          fi
-
-          echo ""
-          echo "FINAL CHECK PASSED."
-            # --------------------------------------------------
-      # VERIFY VITE ENTRY
-      # --------------------------------------------------
-      - name: Verify Vite entry point
-        shell: bash
-        run: |
-          set -e
-
-          echo "========================================"
-          echo "VITE ENTRY POINT"
-          echo "========================================"
-
-          echo "index.html:"
-          cat index.html
-
-          echo ""
-          echo "src/main.jsx:"
-          wc -l src/main.jsx
-
-          echo ""
-          echo "First 5 lines:"
-          head -n 5 src/main.jsx
-
-          echo ""
-          echo "Last 5 lines:"
-          tail -n 5 src/main.jsx
-
-          echo ""
-          echo "Searching for legacy line range..."
-
-          if grep -n "return" src/main.jsx | head -20; then
-            true
-          fi
-
-          echo ""
-          echo "Entry verification complete."    
-
-      # --------------------------------------------------
-      # 12. Build React/Vite
+      # 10. Build React/Vite
       # --------------------------------------------------
       - name: Build React/Vite
         run: |
-          echo "Building ONLY the verified src/main.jsx..."
+          echo "Building src/main.jsx..."
           npm run build
 
       # --------------------------------------------------
-      # 13. Upload Pages artifact
+      # 11. Upload Pages artifact
       # --------------------------------------------------
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
