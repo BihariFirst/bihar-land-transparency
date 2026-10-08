@@ -1,0 +1,10 @@
+{
+  "title": "अधिकार, कर्तव्य और जवाबदेही",
+  "verified_on": "2026-10-08",
+  "sections": [
+    {"type":"citizen_rights","title":"नागरिक के अधिकार","items":["आवेदन की receipt/case reference को सुरक्षित रखना और status track करना","आपत्ति होने पर कानूनन उपलब्ध hearing/opportunity का लाभ लेना","rejection/order के कारण और prescribed records/copies मांगने की प्रक्रिया समझना","Circle Officer के order के विरुद्ध statutory appeal/revision route समझना","देरी होने पर order-sheet में recorded reason और applicable accountability provision की जानकारी लेना","अपनी complaint/reference number, date और authority के साथ follow-up करना"]},
+    {"type":"citizen_duties","title":"नागरिक के कर्तव्य","items":["सही और सत्य information देना","prescribed form/process और applicable time requirements का पालन करना","case number, dates और official communications सुरक्षित रखना","गलत/duplicate claim न करना","आपत्ति/appeal/revision में facts को स्पष्ट और सत्य रखना"]},
+    {"type":"officer_duties","title":"अधिकारी/कार्यालय की जवाबदेही","items":["Mutation petition receive/register करना और case record बनाना","Prescribed enquiry और reports को process करना","Objection और hearing के मामलों में उचित opportunity देना","Rejection में reasons record/communicate करना","Allowed mutation में correction slip और record update process आगे बढ़ाना","Delay होने पर reasons record करना","Delay की जिम्मेदारी applicable law के अनुसार concerned official पर trace करना"]},
+    {"type":"escalation","title":"अपील/पुनरीक्षण जवाबदेही","items":["Circle Officer order → DCLR appeal","DCLR order → Collector/Additional Collector revision","Jamabandi cancellation matter → statutory appeal/revision hierarchy","हर escalation में order number, order date, filing date और authority record करना"]}
+  ]
+}
