@@ -2,11 +2,12 @@ name: Deploy React/Vite to GitHub Pages
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -21,23 +22,44 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
-      - name: Setup GitHub Pages
-        uses: actions/configure-pages@v5
+      # Create/update lock file directly in GitHub runner
+      - name: Create or update package-lock.json
+        run: |
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
 
+      # Commit lock file if it changed
+      - name: Commit lock file
+        run: |
+          if git diff --quiet -- package-lock.json; then
+            echo "No package-lock.json changes."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+            git add package-lock.json
+            git commit -m "chore: generate package-lock.json"
+            git push origin HEAD:main
+          fi
+
+      # Install dependencies
       - name: Install dependencies
         run: npm ci
 
       - name: Validate data
         run: npm run validate:data
 
-      - name: Build React application
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Build
         run: npm run build
 
       - name: Upload Pages artifact
@@ -46,12 +68,12 @@ jobs:
           path: ./dist
 
   deploy:
+    runs-on: ubuntu-latest
+    needs: build
+
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-
-    runs-on: ubuntu-latest
-    needs: build
 
     steps:
       - name: Deploy to GitHub Pages
