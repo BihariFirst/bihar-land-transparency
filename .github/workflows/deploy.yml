@@ -153,6 +153,100 @@ jobs:
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
+            # --------------------------------------------------
+      # FORCE AND VERIFY FRONTEND
+      # --------------------------------------------------
+      - name: FORCE correct main.jsx
+        shell: bash
+        run: |
+          set -e
+
+          echo "========================================"
+          echo "FORCING CORRECT FRONTEND"
+          echo "========================================"
+
+          echo "Git commit:"
+          git rev-parse HEAD
+
+          echo ""
+          echo "Replacement file:"
+          ls -lh src/main-github-pages-fixed.jsx
+          wc -l src/main-github-pages-fixed.jsx
+          sha256sum src/main-github-pages-fixed.jsx
+
+          echo ""
+          echo "Removing old main.jsx..."
+          rm -f src/main.jsx
+
+          echo "Copying fixed frontend..."
+          cp -f src/main-github-pages-fixed.jsx src/main.jsx
+
+          echo ""
+          echo "ACTIVE main.jsx:"
+          ls -lh src/main.jsx
+          wc -l src/main.jsx
+          sha256sum src/main.jsx
+
+          echo ""
+          echo "Comparing files..."
+
+          cmp -s src/main-github-pages-fixed.jsx src/main.jsx
+
+          if [ $? -ne 0 ]; then
+            echo "ERROR: main.jsx does NOT match fixed frontend."
+            exit 1
+          fi
+
+          echo ""
+          echo "SUCCESS: main.jsx EXACTLY matches fixed frontend."
+
+          LINES=$(wc -l < src/main.jsx)
+
+          if [ "$LINES" -gt 500 ]; then
+            echo "ERROR: main.jsx has $LINES lines."
+            echo "Legacy frontend detected."
+            exit 1
+          fi
+
+          echo ""
+          echo "FINAL CHECK PASSED."
+            # --------------------------------------------------
+      # VERIFY VITE ENTRY
+      # --------------------------------------------------
+      - name: Verify Vite entry point
+        shell: bash
+        run: |
+          set -e
+
+          echo "========================================"
+          echo "VITE ENTRY POINT"
+          echo "========================================"
+
+          echo "index.html:"
+          cat index.html
+
+          echo ""
+          echo "src/main.jsx:"
+          wc -l src/main.jsx
+
+          echo ""
+          echo "First 5 lines:"
+          head -n 5 src/main.jsx
+
+          echo ""
+          echo "Last 5 lines:"
+          tail -n 5 src/main.jsx
+
+          echo ""
+          echo "Searching for legacy line range..."
+
+          if grep -n "return" src/main.jsx | head -20; then
+            true
+          fi
+
+          echo ""
+          echo "Entry verification complete."    
+
       # --------------------------------------------------
       # 12. Build React/Vite
       # --------------------------------------------------
