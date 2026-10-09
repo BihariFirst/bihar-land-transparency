@@ -6,7 +6,43 @@ import './styles.css';
 const API=import.meta.env.VITE_API_URL||'';
 const STATIC_BASE=import.meta.env.BASE_URL;
 let masterCache=null;
-async function loadMaster(){if(masterCache)return masterCache;const r=await fetch(`${STATIC_BASE}data/bihar_official_master_data.json`);if(!r.ok)throw new Error('Master data unavailable');masterCache=await r.json();return masterCache}
+async function loadMaster(){
+  if(masterCache)return masterCache;
+  const r=await fetch(`${STATIC_BASE}data/bihar_official_master_data.json`);
+  if(!r.ok)throw new Error('Master data unavailable');
+  const raw=await r.json();
+  // The official JSON is records-based; adapt it to the hierarchy used by the UI.
+  const records=Array.isArray(raw.records)?raw.records:[];
+  const districts=[],subdivisions=[],circles=[];
+  const districtMap=new Map(),subdivisionMap=new Map(),circleMap=new Map();
+  for(const row of records){
+    const districtName=String(row.district||'').trim();
+    const subdivisionName=String(row.subdivision||'').trim();
+    const circleName=String(row.circle||'').trim();
+    if(!districtName)continue;
+    let district=districtMap.get(districtName);
+    if(!district){
+      district={id:`d-${districts.length+1}`,name:districtName};
+      districtMap.set(districtName,district);districts.push(district);
+    }
+    if(!subdivisionName)continue;
+    const subdivisionKey=`${district.id}|${subdivisionName}`;
+    let subdivision=subdivisionMap.get(subdivisionKey);
+    if(!subdivision){
+      subdivision={id:`s-${subdivisions.length+1}`,district_id:district.id,name:subdivisionName};
+      subdivisionMap.set(subdivisionKey,subdivision);subdivisions.push(subdivision);
+    }
+    if(!circleName)continue;
+    const circleKey=`${subdivision.id}|${circleName}`;
+    if(!circleMap.has(circleKey)){
+      const circle={id:`c-${circles.length+1}`,subdivision_id:subdivision.id,name:circleName,status:row.status||'active'};
+      circleMap.set(circleKey,circle);circles.push(circle);
+    }
+  }
+  if(!districts.length||!subdivisions.length||!circles.length)throw new Error('Official master data has no usable hierarchy records');
+  masterCache={...raw,districts,subdivisions,circles};
+  return masterCache;
+}
 function localCases(){try{return JSON.parse(localStorage.getItem('blta_cases')||'[]')}catch{return []}}
 function saveCases(x){localStorage.setItem('blta_cases',JSON.stringify(x))}
 async function staticDistricts(){const m=await loadMaster();return m.districts.map((d,i)=>({id:d.id||i+1,name:d.name||d.district}))}
@@ -26,7 +62,7 @@ const journey=[
  {stage:'Appeal / Revision',who:'DCLR → Collector/Additional Collector',track:'Appeal/revision number, filing date, order date'}
 ];
 const nav=[['home','Dashboard',LayoutDashboard],['districts','38 जिले',MapPinned],['law','कानून 2011–वर्तमान',BookOpen],['rights','अधिकार / कर्तव्य',Scale],['process','दाखिल-खारिज यात्रा',GitBranch],['feedback','नागरिक अनुभव',ClipboardList],['case','Case Tracking',Search],['grievance','शिकायत यात्रा',AlertTriangle],['research','Research Dashboard',BarChart3],['reports','Reports / Reform',FileText],['admin','Admin / Data',Database]];
-async function api(path,options={}){if(!API){if(path==='/districts')return staticDistricts();let m;if(path.startsWith('/districts/')&&path.endsWith('/subdivisions'))return staticSubs(path.split('/')[2]);if(path.startsWith('/subdivisions/')&&path.endsWith('/circles'))return staticCircles(path.split('/')[2]);if(path.startsWith('/cases/')&&!path.includes('duplicate-check'))return staticCase(decodeURIComponent(path.split('/')[2]));if(path==='/dashboard'){const c=localCases();return {totals:{cases:c.length,districts:new Set(c.map(x=>x.district)).size,resolved:c.filter(x=>x.status==='Resolved').length},byDistrict:[]}}throw new Error('This public GitHub Pages build does not use the server API.')}const r=await fetch(API+path,{headers:{'Content-Type':'application/json',...(options.headers||{})},...options});const j=await r.json();if(!r.ok)throw new Error(j.error||'Request failed');return j}
+async function api(path,options={}){if(!API){if(path==='/districts')return staticDistricts();let m;if(path.startsWith('/districts/')&&path.endsWith('/subdivisions'))return staticSubs(path.split('/')[2]);if(path.startsWith('/subdivisions/')&&path.endsWith('/circles'))return staticCircles(path.split('/')[2]);if(path.startsWith('/cases/')&&!path.includes('duplicate-check'))return staticCase(decodeURIComponent(path.split('/')[2]));if(path==='/dashboard'){const c=localCases();return {totals:{cases:c.length,districts:new Set(c.map(x=>x.district)).size,resolved:c.filter(x=>x.status==='Resolved').length},byDistrict:[]}}throw new Error('This public GitHub Pages build does not use the server API.')}}const r=await fetch(API+path,{headers:{'Content-Type':'application/json',...(options.headers||{})},...options});const j=await r.json();if(!r.ok)throw new Error(j.error||'Request failed');return j}
 function App(){const [tab,setTab]=useState('home');const [mobile,setMobile]=useState(false);const [districts,setDistricts]=useState([]);const [selected,setSelected]=useState('');const [caseId,setCaseId]=useState('');
  useEffect(()=>{api('/districts').then(setDistricts).catch(()=>{setDistricts([])})},[]);
  const go=x=>{setTab(x);setMobile(false)};
