@@ -85,3 +85,22 @@ Citizen allegations, verified procedural irregularity and final research finding
 ## Privacy / evidence policy
 
 This project intentionally does **not** provide evidence-file upload. Citizen experience is captured through structured numbers, dates, authorities, actions and suggestions only.
+
+
+## Modular navigation and mobile pages (added)
+
+- Menu IDs and hash routing live in `src/app/navigation.js`; each page can be linked directly using `#/home`, `#/districts`, `#/law`, `#/rights`, `#/process`, `#/feedback`, `#/case`, `#/grievance`, `#/research`, `#/reports`, or `#/admin`. Hash routing avoids GitHub Pages refresh/404 issues.
+- Existing page components and shared workflows were retained to reduce migration risk; page ownership is documented in `src/pages/README.md`.
+- Mobile navigation selector and small-screen form/table behavior were corrected/strengthened.
+- `server/index.js` and `server/googleSync.js` include SQLite-first persistence and queued Google Sheets synchronization. The Google service is downstream of the database write; queued sync can be retried when Sheets is unavailable.
+- The Google Apps Script is in `google-apps-script/Code.gs`. Configure server environment variables from `.env.example`; never put backend/admin secrets in the GitHub Pages frontend.
+- Evidence/document/photo upload is intentionally not implemented. Citizen entries retain identifiers and dates only.
+
+## Important deployment note
+
+GitHub Pages serves the frontend only. Citizen submissions, duplicate checks, secure admin operations, durable SQLite storage, and queued Google Sheets sync require the separately hosted backend with persistent storage. Do not treat browser-only demo values as a central database.
+
+
+## GitHub Pages deployment
+
+The workflow `.github/workflows/deploy.yml` builds and deploys the static frontend from `main`. In repository **Settings → Secrets and variables → Actions**, add `VITE_API_URL` with the backend API base URL ending in `/api` (for example `https://your-api-host.example/api`). If it is omitted, official static district/legal pages still load, but citizen submission, duplicate checking, central case tracking and protected admin actions remain unavailable until the backend URL is configured. Never add `ADMIN_TOKEN` or `GOOGLE_SYNC_SECRET` as a `VITE_` variable because Vite exposes `VITE_*` values in the public frontend.
