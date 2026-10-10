@@ -24,6 +24,38 @@ export default function App(){
  const [selected,setSelected]=useState('');
  const [caseId,setCaseId]=useState('');
  useEffect(()=>{api('/districts').then(setDistricts).catch(()=>setDistricts([]))},[]);
+ 
+ useEffect(() => {
+   let cancelled = false;
+
+   api('/districts')
+     .then((data) => {
+       const rows = Array.isArray(data)
+         ? data
+         : Array.isArray(data?.districts)
+           ? data.districts
+           : [];
+
+       if (!cancelled) {
+         setDistricts(
+           rows
+             .filter((d) => d && (d.name || d.district_name))
+             .map((d) => ({
+               ...d,
+               name: d.name || d.district_name,
+             }))
+         );
+       }
+     })
+     .catch((error) => {
+       console.error('District API error:', error);
+       if (!cancelled) setDistricts([]);
+     });
+
+   return () => {
+     cancelled = true;
+   };
+ }, []);
  useEffect(()=>{const syncRoute=()=>{setTab(readPageFromHash());setMobile(false);setOpenMenu('')};window.addEventListener('hashchange',syncRoute);return()=>window.removeEventListener('hashchange',syncRoute)},[]);
  useEffect(()=>{const labels={home:'होम',districts:'जिला नेटवर्क',law:'कानून 2011–वर्तमान',rights:'अधिकार / कर्तव्य',process:'दाखिल-खारिज यात्रा',feedback:'नागरिक अनुभव',case:'Case Tracking',grievance:'शिकायत यात्रा',research:'Research Dashboard',reports:'Reports / Reform',admin:'Admin / Data'};document.title=`${labels[tab]||'Transparency Indicator'} | Transparency Indicator`},[tab]);
  const go=x=>{if(!validPageIds.has(x))return;setTab(x);setMobile(false);setOpenMenu('');if(readPageFromHash()!==x)window.location.hash='/'+x;window.scrollTo({top:0,behavior:'auto'})};
