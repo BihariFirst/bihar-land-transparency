@@ -3,6 +3,7 @@ import {ArrowRight,ChevronDown,ChevronRight,Menu,X} from 'lucide-react';
 import {nav,validPageIds,readPageFromHash} from './navigation.js';
 import logo from '../assets/images/logo.svg';
 import {api} from '../services/api.js';
+import {HeaderVisitorCounter} from '../components/HeaderVisitorCounter.jsx';
 import {HomePage} from '../pages/HomePage.jsx';
 import {DistrictsPage} from '../pages/DistrictsPage.jsx';
 import {LegalRulesPage} from '../pages/LegalRulesPage.jsx';
@@ -46,7 +47,7 @@ export default function App(){
      <button className="brand" onClick={()=>go('home')} aria-label="Transparency Indicator home"><img className="brand-logo" src={logo} alt="Transparency Indicator logo"/><span className="brand-campaign">भूमि अधिकार एवं पारदर्शिता अभियान — बिहार</span></button>
      <button className="menu" aria-label={mobile?'मेनू बंद करें':'मेनू खोलें'} aria-expanded={mobile} onClick={()=>{setMobile(!mobile);setOpenMenu('')}}>{mobile?<X size={24}/>:<Menu size={24}/>}</button>
      <nav className={mobile?'open':''} aria-label="मुख्य नेविगेशन">{nav.map(renderMenuItem)}</nav>
-     <button className="cta" onClick={()=>go('feedback')}>अनुभव दर्ज करें <ArrowRight size={16}/></button>
+     <div className="header-actions"><HeaderVisitorCounter /><button className="cta" onClick={()=>go('feedback')}>अनुभव दर्ज करें <ArrowRight size={16}/></button></div>
    </header>
    {tab==='home'&&<HomePage go={go} districts={districts} setSelected={setSelected}/>}
    {tab==='districts'&&<DistrictsPage districts={districts} selected={selected} setSelected={setSelected}/>}
